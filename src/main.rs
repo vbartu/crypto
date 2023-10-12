@@ -1,5 +1,4 @@
-mod aes;
-
+mod aes_128;
 
 fn print_hex(data: &[u8]) {
     for i in 0..data.len() {
@@ -17,10 +16,10 @@ fn main() {
 
     print_hex(data.as_slice());
 
-    let ciphertext = aes::aes_128_encrypt(&data, &key);
+    let ciphertext = aes_128::encrypt(&data, &key);
     print_hex(ciphertext.as_slice());
 
-    let plaintext = aes::aes_128_decrypt(&ciphertext, &key);
+    let plaintext = aes_128::decrypt(&ciphertext, &key);
     print_hex(plaintext.as_slice());
     assert_eq!(&data, plaintext.as_ref());
 }
