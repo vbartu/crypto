@@ -9,22 +9,19 @@ fn sub_bytes(state: &mut [u8; 16], s_box: &[u8; 256]) {
     }
 }
 
-fn shift_rows(state: &mut [u8; 16]) {
+fn shift_rows(state: &mut [u8; 16], rot: constants::ShiftRows) {
     let orig: Box<[u8; 16]> = Box::new(state.clone());
 
     for i in 1..4 { // First word does not rotate
         for j in 0..4 {
-            state[i + 4*j] = orig[(i + 4*(j+i)) % 16];
-        }
-    }
-}
-
-fn inv_shift_rows(state: &mut [u8; 16]) {
-    let orig: Box<[u8; 16]> = Box::new(state.clone());
-
-    for i in 1..4 {
-        for j in 0..4 {
-            state[(i + 4*(j+i)) % 16] = orig[i + 4*j]
+            match rot {
+                constants::ShiftRows::LEFT => {
+                    state[i + 4*j] = orig[(i + 4*(j+i)) % 16];
+                },
+                constants::ShiftRows::RIGHT => {
+                    state[(i + 4*(j+i)) % 16] = orig[i + 4*j]
+                }
+            }
         }
     }
 }
@@ -92,14 +89,14 @@ pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
 
     for i in 0..constants::AES_128_ROUNDS-1 {
         sub_bytes(&mut state, &constants::S_BOX);
-        shift_rows(&mut state);
+        shift_rows(&mut state, constants::ShiftRows::LEFT);
         mix_columns(&mut state, &constants::MC_MATRIX);
         expanded_key = key_expansion(&expanded_key, i+1);
         add_round_key(&mut state, &expanded_key);
     }
     // Last round
     sub_bytes(&mut state, &constants::S_BOX);
-    shift_rows(&mut state);
+    shift_rows(&mut state, constants::ShiftRows::LEFT);
     expanded_key = key_expansion(&expanded_key, constants::AES_128_ROUNDS);
     add_round_key(&mut state, &expanded_key);
 
@@ -119,13 +116,13 @@ pub fn decrypt(ciphertext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
     add_round_key(&mut state, &expanded_keys[10]);
 
     for i in 0..constants::AES_128_ROUNDS-1 {
-        inv_shift_rows(&mut state);
+        shift_rows(&mut state, constants::ShiftRows::RIGHT);
         sub_bytes(&mut state, &constants::INV_S_BOX);
         add_round_key(&mut state, &expanded_keys[9-i]);
         mix_columns(&mut state, &constants::INV_MC_MATRIX);
     }
 
-    inv_shift_rows(&mut state);
+    shift_rows(&mut state, constants::ShiftRows::RIGHT);
     sub_bytes(&mut state, &constants::INV_S_BOX);
     add_round_key(&mut state, &expanded_keys[0]);
 
