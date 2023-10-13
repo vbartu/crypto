@@ -1,4 +1,7 @@
 mod aes_128;
+mod modes;
+
+use std::string::String;
 
 fn print_hex(data: &[u8]) {
     for i in 0..data.len() {
@@ -22,4 +25,13 @@ fn main() {
     let plaintext = aes_128::decrypt(&ciphertext, &key);
     print_hex(plaintext.as_slice());
     assert_eq!(&data, plaintext.as_ref());
+
+
+    let msg = String::from("Hey friends, this is a longer message!!!");
+    print_hex(msg.as_bytes());
+    let ecb_encrypted = modes::ecb::encrypt(msg.as_bytes(), &key);
+    print_hex(ecb_encrypted.as_slice());
+    let ecb_decrypted = modes::ecb::decrypt(&ecb_encrypted, &key);
+    print_hex(ecb_decrypted.as_slice());
+    println!("{}", String::from_utf8(ecb_decrypted).unwrap());
 }
