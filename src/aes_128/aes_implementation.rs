@@ -87,7 +87,7 @@ pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
 
     add_round_key(&mut state, &expanded_key);
 
-    for i in 0..constants::AES_128_ROUNDS-1 {
+    for i in 0..constants::ROUNDS-1 {
         sub_bytes(&mut state, &constants::S_BOX);
         shift_rows(&mut state, constants::ShiftRows::LEFT);
         mix_columns(&mut state, &constants::MC_MATRIX);
@@ -97,7 +97,7 @@ pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
     // Last round
     sub_bytes(&mut state, &constants::S_BOX);
     shift_rows(&mut state, constants::ShiftRows::LEFT);
-    expanded_key = key_expansion(&expanded_key, constants::AES_128_ROUNDS);
+    expanded_key = key_expansion(&expanded_key, constants::ROUNDS);
     add_round_key(&mut state, &expanded_key);
 
     state
@@ -115,7 +115,7 @@ pub fn decrypt(ciphertext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
 
     add_round_key(&mut state, &expanded_keys[10]);
 
-    for i in 0..constants::AES_128_ROUNDS-1 {
+    for i in 0..constants::ROUNDS-1 {
         shift_rows(&mut state, constants::ShiftRows::RIGHT);
         sub_bytes(&mut state, &constants::INV_S_BOX);
         add_round_key(&mut state, &expanded_keys[9-i]);

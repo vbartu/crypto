@@ -1,4 +1,5 @@
-pub const AES_128_ROUNDS: usize = 10;
+pub const ROUNDS: usize = 10;
+pub const BLOCK_SIZE: usize = 16;
 
 // Key expansion round constant
 pub const R_CONST: [u8; 10] = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
