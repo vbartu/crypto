@@ -2,21 +2,17 @@ use std::vec::Vec;
 
 
 pub fn pad(data: &[u8], block_size: usize) -> Vec<u8> {
-    let size: usize = (data.len()/block_size + 1) * block_size;
-    let padding: u8 = (size - data.len()) as u8;
+    let mut padded: Vec<u8> = data.to_vec();
+    let total_size: usize = (data.len()/block_size + 1) * block_size;
+    let padding_size: usize = total_size - data.len();
 
-    let mut result: Vec<u8> = Vec::with_capacity(size);
-    result.extend_from_slice(data);
-    for _ in 0..padding {
-        result.push(padding);
+    for _ in 0..padding_size {
+        padded.push(padding_size as u8);
     }
-
-    assert!(result.len() % block_size == 0);
-    result
+    padded
 }
 
 pub fn unpad(data: &[u8]) -> &[u8] {
-    let padding: usize = data[data.len()-1] as usize;
-    assert!(1 <= padding && padding <= 8);
-    &data[..data.len()-padding]
+    let padding_size: usize = data[data.len()-1] as usize;
+    &data[..data.len()-padding_size]
 }
