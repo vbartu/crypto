@@ -26,4 +26,12 @@ fn main() {
     assert_eq!(msg, String::from_utf8(ecb_decrypted).unwrap());
     print_hex(ecb_encrypted.as_slice());
     println!("AES-ECB");
+
+    // let iv: [u8; 16] = [0; 16];
+    let iv = data.clone();
+    let cbc_encrypted = modes::cbc::encrypt(msg.as_bytes(), &key, &iv);
+    let cbc_decrypted = modes::cbc::decrypt(&cbc_encrypted, &key, &iv);
+    assert_eq!(msg, String::from_utf8(cbc_decrypted).unwrap());
+    print_hex(cbc_encrypted.as_slice());
+    println!("AES-CBC");
 }
