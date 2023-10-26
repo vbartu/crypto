@@ -1,6 +1,7 @@
 use std::boxed::Box;
 
 use super::aes_constants as constants;
+use crate::utils;
 
 
 fn sub_bytes(state: &mut [u8; 16], s_box: &[u8; 256]) {
@@ -27,10 +28,10 @@ fn shift_rows(state: &mut [u8; 16], rot: constants::ShiftRows) {
 }
 
 fn galois_mult(mut a: u8, mut b: u8) -> u8 {
-    let mut result: u8 = 0;
+    let mut p: u8 = 0;
     while b != 0 {
         if b & 0x01 != 0 {
-            result ^= a;
+            p ^= a;
         }
         if a & 0x80 != 0 {
             a = (a << 1) ^ 0x1B;
@@ -39,7 +40,7 @@ fn galois_mult(mut a: u8, mut b: u8) -> u8 {
         }
         b >>= 1;
     }
-    result
+    p
 }
 
 fn mix_columns(state: &mut [u8; 16], matrix: &[[u8; 4]; 4]) {
@@ -56,34 +57,32 @@ fn mix_columns(state: &mut [u8; 16], matrix: &[[u8; 4]; 4]) {
 }
 
 fn add_round_key(state: &mut [u8; 16], key: &[u8; 16]) {
-    for i in 0..state.len() {
-        state[i] ^= key[i];
-    }
+    utils::xor_slice(state.as_mut_slice(), key.as_slice());
 }
 
-fn key_expansion(prev_key: &[u8; 16], round: usize) -> Box<[u8; 16]> {
-    let mut new_key: Box<[u8; 16]> = Box::new([0; 16]);
+fn key_expansion(prev_key: &[u8; 16], round: usize) -> [u8; 16] {
+    let mut next_key: [u8; 16] = [0; 16];
 
     // Rotate, Sub, XOR
     for i in 0..4 {
-        new_key[i] = prev_key[12 + (i+1)%4];
-        new_key[i] = constants::S_BOX[new_key[i] as usize];
-        new_key[i] ^= prev_key[i];
+        next_key[i] = prev_key[12 + (i+1)%4];
+        next_key[i] = constants::S_BOX[next_key[i] as usize];
+        next_key[i] ^= prev_key[i];
     }
 
     // Round constant
-    new_key[0] ^= constants::R_CONST[round-1];
+    next_key[0] ^= constants::R_CONST[round-1];
 
 
     for i in 4..prev_key.len() {
-        new_key[i] = prev_key[i] ^ new_key[i-4];
+        next_key[i] = prev_key[i] ^ next_key[i-4];
     }
-    new_key
+    next_key
 }
 
-pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
-    let mut state: Box<[u8; 16]> = Box::new(plaintext.clone());
-    let mut expanded_key: Box<[u8; 16]> = Box::new(key.clone());
+pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
+    let mut state: [u8; 16] = plaintext.clone();
+    let mut expanded_key: [u8; 16] = key.clone();
 
     add_round_key(&mut state, &expanded_key);
 
@@ -103,14 +102,14 @@ pub fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
     state
 }
 
-pub fn decrypt(ciphertext: &[u8; 16], key: &[u8; 16]) -> Box<[u8; 16]> {
-    let mut state: Box<[u8; 16]> = Box::new(ciphertext.clone());
+pub fn decrypt(ciphertext: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
+    let mut state: [u8; 16] = ciphertext.clone();
 
     // Generate keys
-    let mut expanded_keys: Box<[[u8; 16]; 11]> = Box::new(Default::default());
+    let mut expanded_keys: Box<[[u8; 16]; 11]> = Default::default();
     expanded_keys[0] = key.clone();
     for i in 1..expanded_keys.len() {
-        expanded_keys[i] = *key_expansion(&expanded_keys[i-1], i);
+        expanded_keys[i] = key_expansion(&expanded_keys[i-1], i);
     }
 
     add_round_key(&mut state, &expanded_keys[10]);
