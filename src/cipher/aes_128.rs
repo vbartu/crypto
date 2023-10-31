@@ -5,23 +5,31 @@ use super::{Cipher,CipherErr};
 
 
 pub struct Aes128Cipher {
-    key: [u8; Self::BLOCK_SIZE],
+    keys: Vec<[u8; Self::BLOCK_SIZE]>,
 }
 
 impl Cipher for Aes128Cipher {
     const BLOCK_SIZE: usize = constants::BLOCK_SIZE;
 
     fn new(key: &[u8]) -> Result<Self, CipherErr> {
-        match key.try_into() {
-            Ok(key) => Ok(Self { key }),
-            Err(_) => Err(CipherErr::KeySize)
+        let key: [u8; Self::BLOCK_SIZE] = match key.try_into() {
+            Ok(key) => key,
+            Err(_) => return Err(CipherErr::KeySize),
+        };
+
+        let mut keys: Vec<[u8; Self::BLOCK_SIZE]> = Vec::new();
+        keys.push(key);
+        for i in 1..constants::ROUNDS+1 {
+            keys.push(key_expansion(&keys[i-1], i));
         }
+
+        Ok(Self { keys })
     }
 
     fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CipherErr> {
         match data.try_into() {
             Ok(data) => {
-                let ciphertext = encrypt(&data, &self.key);
+                let ciphertext = self.do_encrypt(&data);
                 Ok(Vec::from(ciphertext))
             },
             Err(_) => Err(CipherErr::BlockSize)
@@ -31,13 +39,54 @@ impl Cipher for Aes128Cipher {
     fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, CipherErr> {
         match data.try_into() {
             Ok(data) => {
-                let plaintext = decrypt(&data, &self.key);
+                let plaintext = self.do_decrypt(&data);
                 Ok(Vec::from(plaintext))
             },
             Err(_) => Err(CipherErr::BlockSize)
         }
     }
 }
+
+impl Aes128Cipher {
+    fn do_encrypt(&self, plaintext: &[u8; 16]) -> [u8; 16] {
+        let mut state: [u8; 16] = plaintext.clone();
+
+        add_round_key(&mut state, &self.keys[0]);
+
+        for i in 0..constants::ROUNDS-1 {
+            sub_bytes(&mut state, &constants::S_BOX);
+            shift_rows(&mut state, constants::ShiftRows::LEFT);
+            mix_columns(&mut state, &constants::MC_MATRIX);
+            add_round_key(&mut state, &self.keys[i+1]);
+        }
+        // Last round
+        sub_bytes(&mut state, &constants::S_BOX);
+        shift_rows(&mut state, constants::ShiftRows::LEFT);
+        add_round_key(&mut state, &self.keys[constants::ROUNDS]);
+
+        state
+    }
+
+    fn do_decrypt(&self, ciphertext: &[u8; 16]) -> [u8; 16] {
+        let mut state: [u8; 16] = ciphertext.clone();
+
+        add_round_key(&mut state, &self.keys[constants::ROUNDS]);
+
+        for i in 0..constants::ROUNDS-1 {
+            shift_rows(&mut state, constants::ShiftRows::RIGHT);
+            sub_bytes(&mut state, &constants::INV_S_BOX);
+            add_round_key(&mut state, &self.keys[9-i]);
+            mix_columns(&mut state, &constants::INV_MC_MATRIX);
+        }
+
+        shift_rows(&mut state, constants::ShiftRows::RIGHT);
+        sub_bytes(&mut state, &constants::INV_S_BOX);
+        add_round_key(&mut state, &self.keys[0]);
+
+        state
+    }
+}
+
 
 fn sub_bytes(state: &mut [u8; 16], s_box: &[u8; 256]) {
     for x in state {
@@ -114,52 +163,4 @@ fn key_expansion(prev_key: &[u8; 16], round: usize) -> [u8; 16] {
         next_key[i] = prev_key[i] ^ next_key[i-4];
     }
     next_key
-}
-
-fn encrypt(plaintext: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
-    let mut state: [u8; 16] = plaintext.clone();
-    let mut expanded_key: [u8; 16] = key.clone();
-
-    add_round_key(&mut state, &expanded_key);
-
-    for i in 0..constants::ROUNDS-1 {
-        sub_bytes(&mut state, &constants::S_BOX);
-        shift_rows(&mut state, constants::ShiftRows::LEFT);
-        mix_columns(&mut state, &constants::MC_MATRIX);
-        expanded_key = key_expansion(&expanded_key, i+1);
-        add_round_key(&mut state, &expanded_key);
-    }
-    // Last round
-    sub_bytes(&mut state, &constants::S_BOX);
-    shift_rows(&mut state, constants::ShiftRows::LEFT);
-    expanded_key = key_expansion(&expanded_key, constants::ROUNDS);
-    add_round_key(&mut state, &expanded_key);
-
-    state
-}
-
-fn decrypt(ciphertext: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
-    let mut state: [u8; 16] = ciphertext.clone();
-
-    // Generate keys
-    let mut expanded_keys: Box<[[u8; 16]; 11]> = Default::default();
-    expanded_keys[0] = key.clone();
-    for i in 1..expanded_keys.len() {
-        expanded_keys[i] = key_expansion(&expanded_keys[i-1], i);
-    }
-
-    add_round_key(&mut state, &expanded_keys[10]);
-
-    for i in 0..constants::ROUNDS-1 {
-        shift_rows(&mut state, constants::ShiftRows::RIGHT);
-        sub_bytes(&mut state, &constants::INV_S_BOX);
-        add_round_key(&mut state, &expanded_keys[9-i]);
-        mix_columns(&mut state, &constants::INV_MC_MATRIX);
-    }
-
-    shift_rows(&mut state, constants::ShiftRows::RIGHT);
-    sub_bytes(&mut state, &constants::INV_S_BOX);
-    add_round_key(&mut state, &expanded_keys[0]);
-
-    state
 }
