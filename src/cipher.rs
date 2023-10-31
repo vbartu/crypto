@@ -1,7 +1,10 @@
 mod aes_128;
 mod aes_128_constants;
+mod des;
+mod des_constants;
 
 pub use aes_128::Aes128Cipher;
+pub use des::DesCipher;
 
 
 #[derive(Debug)]
