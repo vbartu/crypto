@@ -1,31 +1,39 @@
-use std::vec::Vec;
-
 use super::pkcs7_padding;
-use crate::aes_128;
+use crate::cipher::{Cipher,CipherErr};
 use crate::utils;
 
 
-pub fn encrypt(data: &[u8], key: &[u8; 16], iv: &[u8; 16]) -> Vec<u8> {
-    let padded = pkcs7_padding::pad(data, aes_128::BLOCK_SIZE);
+pub fn encrypt(data: &[u8], cipher: &impl Cipher, iv: &[u8])
+        -> Result<Vec<u8>,CipherErr> {
+    let padded = pkcs7_padding::pad(data, cipher.block_size());
     let mut encrypted = Vec::<u8>::with_capacity(padded.len());
 
-    let mut prev_ciphertext = iv.clone();
-    for block in padded.chunks_exact(aes_128::BLOCK_SIZE) {
+    if iv.len() != cipher.block_size() {
+        return Err(CipherErr::BlockSize);
+    }
+    let mut prev_ciphertext: Vec<u8> = iv.to_owned();
+    for block in padded.chunks_exact(cipher.block_size()) {
         utils::xor_slice(&mut prev_ciphertext, block);
-        let ciphertext = aes_128::encrypt(&prev_ciphertext, key);
+        let ciphertext = cipher.encrypt(&prev_ciphertext)
+            .expect("Invalid block size");
         encrypted.extend_from_slice(ciphertext.as_slice());
         prev_ciphertext.copy_from_slice(ciphertext.as_slice());
     }
 
-    encrypted
+    Ok(encrypted)
 }
 
-pub fn decrypt(data: &[u8], key: &[u8; 16], iv: &[u8; 16]) -> Vec<u8> {
+pub fn decrypt(data: &[u8], cipher: &impl Cipher, iv: &[u8])
+        -> Result<Vec<u8>,CipherErr> {
     let mut decrypted = Vec::<u8>::with_capacity(data.len());
 
-    let mut prev_ciphertext = iv.clone();
-    for block in data.chunks_exact(aes_128::BLOCK_SIZE) {
-        let mut plaintext = aes_128::decrypt(block.try_into().unwrap(), key);
+    if iv.len() != cipher.block_size() {
+        return Err(CipherErr::BlockSize);
+    }
+    let mut prev_ciphertext: Vec<u8> = iv.to_owned();
+    for block in data.chunks_exact(cipher.block_size()) {
+        let mut plaintext = cipher.decrypt(block)
+            .expect("Invalid block size");
         utils::xor_slice(plaintext.as_mut_slice(), prev_ciphertext.as_slice());
         decrypted.extend_from_slice(plaintext.as_slice());
         prev_ciphertext.copy_from_slice(block);
@@ -33,5 +41,5 @@ pub fn decrypt(data: &[u8], key: &[u8; 16], iv: &[u8; 16]) -> Vec<u8> {
 
     let unpadded = pkcs7_padding::unpad(decrypted.as_slice());
     decrypted.truncate(unpadded.len());
-    decrypted
+    Ok(decrypted)
 }

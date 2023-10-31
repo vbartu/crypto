@@ -1,37 +1,37 @@
-mod aes_128;
+mod cipher;
 mod modes;
 mod utils;
 
-use std::string::String;
-
-use utils::print_hex;
+use cipher::Cipher;
+use modes::{ecb,cbc};
 
 
 fn main() {
-    let data: [u8; 16] = "Attack at dawn!!".as_bytes().try_into().unwrap();
-    let key: [u8; 16] = "yellow submarine".as_bytes().try_into().unwrap();
+    let data: &[u8] = "Attack at dawn!!".as_bytes();
+    let key: &[u8] = "yellow submarine".as_bytes();
+    let aes_cipher = cipher::Aes128Cipher::new(&key)
+        .expect("Key size error");
 
-    let ciphertext = aes_128::encrypt(&data, &key);
-    println!("AES encryption");
-
-    let plaintext = aes_128::decrypt(&ciphertext, &key);
-    assert_eq!(&data, plaintext.as_ref());
-    println!("AES encryption");
+    let ciphertext = aes_cipher.encrypt(&data)
+        .expect("Invalid data size");
+    let plaintext = aes_cipher.decrypt(&ciphertext)
+        .expect("Invalid data size");
+    assert_eq!(&data, &plaintext.as_slice());
+    println!("AES cipher");
 
 
     let msg = String::from("Hey friends, this is a longer message!!!");
 
-    let ecb_encrypted = modes::ecb::encrypt(msg.as_bytes(), &key);
-    let ecb_decrypted = modes::ecb::decrypt(&ecb_encrypted, &key);
+    let ecb_encrypted = ecb::encrypt(msg.as_bytes(), &aes_cipher).unwrap();
+    let ecb_decrypted = ecb::decrypt(&ecb_encrypted, &aes_cipher).unwrap();
     assert_eq!(msg, String::from_utf8(ecb_decrypted).unwrap());
-    print_hex(ecb_encrypted.as_slice());
+    utils::print_hex(ecb_encrypted.as_slice());
     println!("AES-ECB");
 
-    // let iv: [u8; 16] = [0; 16];
-    let iv = data.clone();
-    let cbc_encrypted = modes::cbc::encrypt(msg.as_bytes(), &key, &iv);
-    let cbc_decrypted = modes::cbc::decrypt(&cbc_encrypted, &key, &iv);
+    let iv: &[u8] = [0; 16].as_slice();
+    let cbc_encrypted = cbc::encrypt(msg.as_bytes(), &aes_cipher, &iv).unwrap();
+    let cbc_decrypted = cbc::decrypt(&cbc_encrypted, &aes_cipher, &iv).unwrap();
     assert_eq!(msg, String::from_utf8(cbc_decrypted).unwrap());
-    print_hex(cbc_encrypted.as_slice());
+    utils::print_hex(cbc_encrypted.as_slice());
     println!("AES-CBC");
 }
