@@ -16,7 +16,12 @@ fn main() {
         .expect("Invalid data size");
     let plaintext = aes_cipher.decrypt(&ciphertext)
         .expect("Invalid data size");
-    assert_eq!(&data, &plaintext.as_slice());
+    let expected: [u8; cipher::Aes128Cipher::BLOCK_SIZE] = [
+        0x90, 0x12, 0x93, 0x2c, 0xf5, 0xa9, 0x53, 0xb0,
+        0xe9, 0x7f, 0xf4, 0xe2, 0x1a, 0x8e, 0xa9, 0xdf
+    ];
+    assert_eq!(expected.as_slice(), ciphertext.as_slice());
+    assert_eq!(data, plaintext.as_slice());
     println!("AES cipher");
 
 
