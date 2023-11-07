@@ -3,7 +3,7 @@ mod modes;
 mod utils;
 
 use cipher::Cipher;
-use modes::{ecb,cbc};
+use modes::{ecb,cbc,ctr};
 
 
 fn main() {
@@ -50,4 +50,11 @@ fn main() {
     assert_eq!(msg, String::from_utf8(cbc_decrypted).unwrap());
     utils::print_hex(cbc_encrypted.as_slice());
     println!("AES-CBC");
+
+    let nonce: &[u8] = [0; 8].as_slice();
+    let ctr_encrypted = ctr::encrypt(msg.as_bytes(), &aes_cipher, &nonce).unwrap();
+    let ctr_decrypted = ctr::decrypt(&ctr_encrypted, &aes_cipher, &nonce).unwrap();
+    assert_eq!(msg, String::from_utf8(ctr_decrypted).unwrap());
+    utils::print_hex(ctr_encrypted.as_slice());
+    println!("AES-CTR");
 }
