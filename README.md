@@ -9,3 +9,5 @@ Implementation of some common cryptographic primitives.
     * ECB
     * CBC
     * CTR
+* Hash functions
+    * SHA256

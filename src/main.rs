@@ -1,8 +1,10 @@
 mod cipher;
+mod hash;
 mod modes;
 mod utils;
 
 use cipher::Cipher;
+use hash::Hash;
 use modes::{ecb,cbc,ctr};
 
 
@@ -57,4 +59,18 @@ fn main() {
     assert_eq!(msg, String::from_utf8(ctr_decrypted).unwrap());
     utils::print_hex(ctr_encrypted.as_slice());
     println!("AES-CTR");
+
+    let mut hash = hash::sha2::Sha256::new();
+    hash.update("ab".as_bytes());
+    let d2 = hash.digest("c".as_bytes());
+    utils::print_hex(d2.as_slice());
+
+    let mut hash = hash::sha2::Sha256::new();
+    let msg: &mut [u8] = &mut [0; 1029];
+    for i in 0..msg.len() {
+        msg[i] = i as u8;
+    }
+    hash.update(msg);
+    let d2 = hash.digest(&[]);
+    utils::print_hex(d2.as_slice());
 }
