@@ -11,58 +11,103 @@ pub struct Sha256 {
     total_data: usize,
 }
 
-impl Hash for Sha256 {
+impl ShaCommon for Sha256 {
     const DIGEST_SIZE: usize = SHA256_DIGEST_SIZE;
+    const BLOCK_SIZE: usize = SHA256_BLOCK_SIZE;
 
     fn new() -> Self {
         Self {
             hash: Box::new(SHA256_H),
-            data: [0; SHA256_BLOCK_SIZE],
+            data: [0; Self::BLOCK_SIZE],
             pending_data: 0,
             total_data: 0,
         }
     }
 
+    fn hash(&mut self) -> &mut [u32; 8] {
+        &mut self.hash
+    }
+    fn data(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
+    fn get_pending(&mut self) -> usize {
+        self.pending_data
+    }
+
+    fn set_pending(&mut self, value: usize) {
+        self.pending_data = value;
+    }
+
+    fn inc_total(&mut self, value: usize) {
+        self.total_data += value;
+    }
+
+    fn get_total(&self) -> usize {
+        self.total_data
+    }
+}
+
+trait ShaCommon{
+    const BLOCK_SIZE: usize;
+    const DIGEST_SIZE: usize;
+    fn new() -> Self;
+    fn hash(&mut self) -> &mut [u32; 8];
+    fn data(&mut self) -> &mut [u8]; // Size MUST BE BLOCK_SIZE
+    fn get_pending(&mut self) -> usize;
+    fn set_pending(&mut self, value: usize);
+    fn inc_total(&mut self, value: usize);
+    fn get_total(&self) -> usize;
+}
+
+impl <T: ShaCommon> Hash for T {
+    const DIGEST_SIZE: usize = <T as ShaCommon>::DIGEST_SIZE;
+
+    fn new() -> Self {
+        <T as ShaCommon>::new()
+    }
+
     fn update(&mut self, data: &[u8]) {
-        if self.pending_data + data.len() < SHA256_BLOCK_SIZE {
-            self.data[self.pending_data..self.pending_data+data.len()]
-                .copy_from_slice(data);
-            self.pending_data += data.len();
+        let pending = self.get_pending();
+        if pending + data.len() < Self::BLOCK_SIZE {
+            self.data()[pending..pending+data.len()].copy_from_slice(data);
+            self.set_pending(pending + data.len());
             return;
         }
 
-        let missing_data = SHA256_BLOCK_SIZE - self.pending_data;
-        self.data[self.pending_data..].copy_from_slice(&data[..missing_data]);
-        process_block(&mut self.hash, &self.data);
-        self.total_data += SHA256_BLOCK_SIZE;
+        let missing_data = Self::BLOCK_SIZE - pending;
+        //TODO: unsafe to dereference data?
+        let mut old_data = self.data().to_vec();
+        old_data[pending..].copy_from_slice(&data[..missing_data]);
+        process_block(&mut self.hash(), &old_data);
+        self.inc_total(Self::BLOCK_SIZE);
 
-        let block_iter = data[missing_data..].chunks_exact(
-            SHA256_BLOCK_SIZE);
+        let block_iter = data[missing_data..].chunks_exact(Self::BLOCK_SIZE);
         let rem = block_iter.remainder();
         for block in block_iter {
-            process_block(&mut self.hash, &block);
-            self.total_data += SHA256_BLOCK_SIZE;
+            process_block(&mut self.hash(), block);
+            self.inc_total(Self::BLOCK_SIZE);
         }
 
-        self.pending_data = rem.len();
-        self.data[..self.pending_data].copy_from_slice(rem);
+        self.set_pending(rem.len());
+        self.data()[..rem.len()].copy_from_slice(rem);
     }
 
     fn digest(&mut self, data: &[u8]) -> Vec<u8> {
         self.update(data);
-        let padded = pad_last_block(&self.data[..self.pending_data],
-                                    self.total_data);
-        for block in padded.chunks_exact(SHA256_BLOCK_SIZE) {
-            process_block(&mut self.hash, block);
+        let pending = self.get_pending();
+        let total = self.get_total();
+        let padded = pad_last_block(&self.data()[..pending], total);
+        for block in padded.chunks_exact(Self::BLOCK_SIZE) {
+            process_block(&mut self.hash(), block);
         }
         let mut digest: Vec<u8> = Vec::with_capacity(Self::DIGEST_SIZE);
-        for hash_word in self.hash.iter() {
-            digest.extend_from_slice(hash_word.to_be_bytes().as_slice());
+        for i in 0..Self::DIGEST_SIZE/4 {
+            digest.extend_from_slice(self.hash()[i].to_be_bytes().as_slice());
         }
         digest
     }
 }
-
 
 fn ch(x: u32, y: u32, z: u32) -> u32 {
     (x & y) ^ (!x & z)
