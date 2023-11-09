@@ -8,6 +8,25 @@ use hash::Hash;
 use modes::{ecb,cbc,ctr};
 
 
+fn test_hash(hash: &mut impl Hash, name: &str) {
+    println!("Testing {}", name);
+
+    // Short test
+    hash.update("ab".as_bytes());
+    let digest = hash.digest("c".as_bytes());
+    utils::print_hex(digest.as_slice());
+
+    // Long test
+    let msg: &mut [u8] = &mut [0; 1029];
+    for i in 0..msg.len() {
+        msg[i] = i as u8;
+    }
+    hash.update(msg);
+    let digest = hash.digest(&[]);
+    utils::print_hex(digest.as_slice());
+}
+
+
 fn main() {
     // AES cipher
     let data: &[u8] = "Attack at dawn!!".as_bytes();
@@ -66,11 +85,7 @@ fn main() {
     utils::print_hex(d2.as_slice());
 
     let mut hash = hash::Sha256::new();
-    let msg: &mut [u8] = &mut [0; 1029];
-    for i in 0..msg.len() {
-        msg[i] = i as u8;
-    }
-    hash.update(msg);
-    let d2 = hash.digest(&[]);
-    utils::print_hex(d2.as_slice());
+    test_hash(&mut hash, "sha256");
+    let mut hash = hash::Sha224::new();
+    test_hash(&mut hash, "sha224");
 }

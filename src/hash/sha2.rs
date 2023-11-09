@@ -44,6 +44,12 @@ impl ShaCommon for Sha224 {
     fn get_total(&self) -> usize {
         self.total_data
     }
+
+    fn reset(&mut self) {
+        self.hash = Box::new(constants::SHA224_H);
+        self.pending_data = 0;
+        self.total_data = 0;
+    }
 }
 
 pub struct Sha256 {
@@ -88,6 +94,12 @@ impl ShaCommon for Sha256 {
     fn get_total(&self) -> usize {
         self.total_data
     }
+
+    fn reset(&mut self) {
+        self.hash = Box::new(constants::SHA256_H);
+        self.pending_data = 0;
+        self.total_data = 0;
+    }
 }
 
 trait ShaCommon{
@@ -100,6 +112,7 @@ trait ShaCommon{
     fn set_pending(&mut self, value: usize);
     fn inc_total(&mut self, value: usize);
     fn get_total(&self) -> usize;
+    fn reset(&mut self);
 }
 
 impl <T: ShaCommon> Hash for T {
@@ -147,6 +160,7 @@ impl <T: ShaCommon> Hash for T {
         for i in 0..Self::DIGEST_SIZE/4 {
             digest.extend_from_slice(self.hash()[i].to_be_bytes().as_slice());
         }
+        self.reset();
         digest
     }
 }
