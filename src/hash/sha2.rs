@@ -1,23 +1,65 @@
 use super::Hash;
-use super::sha2_constants::{SHA256_DIGEST_SIZE,
-                            SHA256_H,
-                            SHA256_BLOCK_SIZE,
-                            SHA256_K};
+use super::sha2_constants as constants;
+
+
+pub struct Sha224 {
+    hash: Box<[u32; 8]>,
+    data: [u8; constants::SHA256_BLOCK_SIZE],
+    pending_data: usize,
+    total_data: usize,
+}
+
+impl ShaCommon for Sha224 {
+    const DIGEST_SIZE: usize = constants::SHA224_DIGEST_SIZE;
+    const BLOCK_SIZE: usize = constants::SHA256_BLOCK_SIZE;
+
+    fn new() -> Self {
+        Self {
+            hash: Box::new(constants::SHA224_H),
+            data: [0; Self::BLOCK_SIZE],
+            pending_data: 0,
+            total_data: 0,
+        }
+    }
+
+    fn hash(&mut self) -> &mut [u32; 8] {
+        &mut self.hash
+    }
+    fn data(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
+    fn get_pending(&mut self) -> usize {
+        self.pending_data
+    }
+
+    fn set_pending(&mut self, value: usize) {
+        self.pending_data = value;
+    }
+
+    fn inc_total(&mut self, value: usize) {
+        self.total_data += value;
+    }
+
+    fn get_total(&self) -> usize {
+        self.total_data
+    }
+}
 
 pub struct Sha256 {
     hash: Box<[u32; 8]>,
-    data: [u8; SHA256_BLOCK_SIZE],
+    data: [u8; constants::SHA256_BLOCK_SIZE],
     pending_data: usize,
     total_data: usize,
 }
 
 impl ShaCommon for Sha256 {
-    const DIGEST_SIZE: usize = SHA256_DIGEST_SIZE;
-    const BLOCK_SIZE: usize = SHA256_BLOCK_SIZE;
+    const DIGEST_SIZE: usize = constants::SHA256_DIGEST_SIZE;
+    const BLOCK_SIZE: usize = constants::SHA256_BLOCK_SIZE;
 
     fn new() -> Self {
         Self {
-            hash: Box::new(SHA256_H),
+            hash: Box::new(constants::SHA256_H),
             data: [0; Self::BLOCK_SIZE],
             pending_data: 0,
             total_data: 0,
@@ -134,15 +176,15 @@ fn v1(x: u32) -> u32 {
 }
 
 fn pad_last_block(block: &[u8], total_data: usize) -> Vec<u8> {
-    assert!(block.len() <= SHA256_BLOCK_SIZE);
-    let mut padded = Vec::with_capacity(SHA256_BLOCK_SIZE);
+    assert!(block.len() <= constants::SHA256_BLOCK_SIZE);
+    let mut padded = Vec::with_capacity(constants::SHA256_BLOCK_SIZE);
     padded.extend_from_slice(block);
     padded.push(0x80);
     let k: usize;
     if block.len() < 56 {
-        k = SHA256_BLOCK_SIZE - block.len() - 1 - 8;
+        k = constants::SHA256_BLOCK_SIZE - block.len() - 1 - 8;
     } else {
-        k = SHA256_BLOCK_SIZE*2 - block.len() - 1 - 8;
+        k = constants::SHA256_BLOCK_SIZE*2 - block.len() - 1 - 8;
     }
     for _ in 0..k {
         padded.push(0)
@@ -174,7 +216,7 @@ fn process_block(hash: &mut [u32; 8], block: &[u8]) {
         let t1: u32 = v[7]
             .wrapping_add(s1(v[4]))
             .wrapping_add(ch(v[4], v[5], v[6]))
-            .wrapping_add(SHA256_K[i])
+            .wrapping_add(constants::SHA256_K[i])
             .wrapping_add(w[i]);
         // t2 = s0(a) + maj(a, b, c);
         let t2: u32 = s0(v[0]).wrapping_add(maj(v[0], v[1], v[2]));

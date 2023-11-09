@@ -10,4 +10,5 @@ Implementation of some common cryptographic primitives.
     * CBC
     * CTR
 * Hash functions
+    * SHA224
     * SHA256

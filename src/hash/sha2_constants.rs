@@ -1,7 +1,16 @@
-pub const SHA256_BLOCK_SIZE: usize = 64;
+// Digest sizes
+pub const SHA224_DIGEST_SIZE: usize = 28;
 pub const SHA256_DIGEST_SIZE: usize = 32;
 
+// Block sizes
+pub const SHA256_BLOCK_SIZE: usize = 64;
+
 // Start values
+pub const SHA224_H: [u32; 8] = [
+   0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
+   0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4,
+];
+
 pub const SHA256_H: [u32; 8] = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
