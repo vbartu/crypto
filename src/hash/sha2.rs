@@ -1,7 +1,4 @@
-use std::num::Wrapping;
-
 use super::Hash;
-use crate::utils::print_hex;
 
 pub struct Sha256 {
     hash: Box<[u32; 8]>,
@@ -106,45 +103,44 @@ fn pad_last_block(block: &[u8], total_data: usize) -> Vec<u8> {
 }
 
 fn process_block(hash: &mut [u32; 8], block: &[u8]) {
-    let mut w: [u32; 64] = [0; 64]; // message schedule
+    // Message schedule (W)
+    let mut w: [u32; 64] = [0; 64];
     for i in 0..16 {
         let index = 4*i;
         w[i] = u32::from_be_bytes(block[index..index+4].try_into().unwrap());
     }
     for i in 16..64 {
-        w[i] = v1(w[i-2]) + w[i-7] + v0(w[i-15]) + w[i-16];
-    }
-    
-    let mut a: u32 = hash[0];
-    let mut b: u32 = hash[1];
-    let mut c: u32 = hash[2];
-    let mut d: u32 = hash[3];
-    let mut e: u32 = hash[4];
-    let mut f: u32 = hash[5];
-    let mut g: u32 = hash[6];
-    let mut h: u32 = hash[7];
-
-    for t in 0..w.len() {
-        let t1: u32 = h + s1(e) + ch(e, f, g) + K[t] +  w[t];
-        let t2: u32 = s0(a) + maj(a, b, c);
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
+        w[i] = v1(w[i-2])
+            .wrapping_add(w[i-7])
+            .wrapping_add(v0(w[i-15]))
+            .wrapping_add(w[i-16]);
     }
 
-    hash[0] += a;
-    hash[1] += b;
-    hash[2] += c;
-    hash[3] += d;
-    hash[4] += e;
-    hash[5] += f;
-    hash[6] += g;
-    hash[7] += h;
+    // Working variables: a(0), b(1), c(2), d(3), e(4), f(5), g(6), h(7)
+    let mut v = hash.clone();
+
+    for i in 0..w.len() {
+        // t1 = h + s1(e) + ch(e, f, g) + K[t] +  w[t]
+        let t1: u32 = v[7]
+            .wrapping_add(s1(v[4]))
+            .wrapping_add(ch(v[4], v[5], v[6]))
+            .wrapping_add(K[i])
+            .wrapping_add(w[i]);
+        // t2 = s0(a) + maj(a, b, c);
+        let t2: u32 = s0(v[0]).wrapping_add(maj(v[0], v[1], v[2]));
+        v[7] = v[6];                  // h = g;
+        v[6] = v[5];                  // g = f;
+        v[5] = v[4];                  // f = e;
+        v[4] = v[3].wrapping_add(t1); // e = d + t1;
+        v[3] = v[2];                  // d = c;
+        v[2] = v[1];                  // c = b;
+        v[1] = v[0];                  // b = a;
+        v[0] = t1.wrapping_add(t2);   // a = t1 + t2;
+    }
+
+    for i in 0..v.len() {
+        hash[i] = hash[i].wrapping_add(v[i]);
+    }
 }
 
 const BLOCK_SIZE: usize = 64;
