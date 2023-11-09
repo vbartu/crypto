@@ -60,12 +60,12 @@ fn main() {
     utils::print_hex(ctr_encrypted.as_slice());
     println!("AES-CTR");
 
-    let mut hash = hash::sha2::Sha256::new();
+    let mut hash = hash::Sha256::new();
     hash.update("ab".as_bytes());
     let d2 = hash.digest("c".as_bytes());
     utils::print_hex(d2.as_slice());
 
-    let mut hash = hash::sha2::Sha256::new();
+    let mut hash = hash::Sha256::new();
     let msg: &mut [u8] = &mut [0; 1029];
     for i in 0..msg.len() {
         msg[i] = i as u8;
