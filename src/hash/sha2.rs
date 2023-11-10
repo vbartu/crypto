@@ -1,6 +1,7 @@
+use std::ops::{BitAnd, BitXor, Not};
+
 use super::Hash;
 use super::sha2_constants as constants;
-use std::ops::{BitAnd, BitXor, Not};
 
 
 pub struct Sha224 {
@@ -107,7 +108,7 @@ impl ShaCommon<u32> for Sha256 {
     }
 }
 
-trait ShaCommon<T: 'static> {
+trait ShaCommon<T: 'static + ShaUnsg> {
     const BLOCK_SIZE: usize;
     const DIGEST_SIZE: usize;
     const W_LENGTH: usize;
@@ -120,6 +121,80 @@ trait ShaCommon<T: 'static> {
     fn inc_total(&mut self, value: usize);
     fn get_total(&self) -> usize;
     fn reset(&mut self);
+
+    fn process_block(&mut self, block: &[u8]) {
+        // Message schedule (W)
+        let mut w: Vec<T> = Vec::with_capacity(Self::W_LENGTH);
+
+        // Always 16 rounds
+        for int_bytes in block.chunks(std::mem::size_of::<T>()) {
+            w.push(T::from_be_bytes(int_bytes));
+        }
+        for i in 16..Self::W_LENGTH {
+            w.push(T::v1(w[i-2])
+                .wrapping_add(w[i-7])
+                .wrapping_add(T::v0(w[i-15]))
+                .wrapping_add(w[i-16]));
+        }
+
+        // Working variables: a(0), b(1), c(2), d(3), e(4), f(5), g(6), h(7)
+        let mut v = self.hash().clone();
+
+        for i in 0..Self::W_LENGTH {
+            // t1 = h + s1(e) + ch(e, f, g) + K[t] +  w[t]
+            let t1: T = v[7]
+                .wrapping_add(T::s1(v[4]))
+                .wrapping_add(T::ch(v[4], v[5], v[6]))
+                .wrapping_add(Self::K_CONST[i])
+                .wrapping_add(w[i]);
+            // t2 = s0(a) + maj(a, b, c);
+            let t2: T = T::s0(v[0]).wrapping_add(T::maj(v[0], v[1], v[2]));
+
+            v[7] = v[6];                  // h = g;
+            v[6] = v[5];                  // g = f;
+            v[5] = v[4];                  // f = e;
+            v[4] = v[3].wrapping_add(t1); // e = d + t1;
+            v[3] = v[2];                  // d = c;
+            v[2] = v[1];                  // c = b;
+            v[1] = v[0];                  // b = a;
+            v[0] = t1.wrapping_add(t2);   // a = t1 + t2;
+        }
+
+        for i in 0..v.len() {
+            self.hash()[i] = self.hash()[i].wrapping_add(v[i]);
+        }
+    }
+
+    fn pad_last_block(&mut self) -> Vec<u8> {
+        let pending = self.get_pending();
+        let block = &self.data()[..pending];
+        assert!(block.len() <= Self::BLOCK_SIZE);
+
+        let mut padded = Vec::with_capacity(Self::BLOCK_SIZE);
+        padded.extend_from_slice(block);
+        padded.push(0x80);
+
+        let k: usize;
+        if block.len() < Self::BLOCK_SIZE - Self::BLOCK_SIZE/8 {
+            k = Self::BLOCK_SIZE - block.len() - 1 - Self::BLOCK_SIZE/8;
+        } else {
+            k = Self::BLOCK_SIZE*2 - block.len() - 1 - Self::BLOCK_SIZE/8;
+        }
+        for _ in 0..k {
+            padded.push(0)
+        }
+
+        let block_len = block.len();
+        let total_data = self.get_total();
+        if Self::BLOCK_SIZE == constants::SHA256_BLOCK_SIZE {
+            let length = (((total_data+block_len)*8) as u64).to_be_bytes();
+            padded.extend_from_slice(&length);
+        } else {
+            let length = (((total_data+block_len)*8) as u128).to_be_bytes();
+            padded.extend_from_slice(&length);
+        }
+        padded
+    }
 }
 
 impl <T: ShaCommon<u32>> Hash for T {
@@ -138,16 +213,16 @@ impl <T: ShaCommon<u32>> Hash for T {
         }
 
         let missing_data = Self::BLOCK_SIZE - pending;
-        //TODO: unsafe to dereference data?
+        //TODO: Fix!! unsafe to dereference data?
         let mut old_data = self.data().to_vec();
         old_data[pending..].copy_from_slice(&data[..missing_data]);
-        process_block(&mut self.hash(), &old_data, &Self::K_CONST, Self::W_LENGTH);
+        self.process_block(&old_data);
         self.inc_total(Self::BLOCK_SIZE);
 
         let block_iter = data[missing_data..].chunks_exact(Self::BLOCK_SIZE);
         let rem = block_iter.remainder();
         for block in block_iter {
-            process_block(&mut self.hash(), block, &Self::K_CONST, Self::W_LENGTH);
+            self.process_block(block);
             self.inc_total(Self::BLOCK_SIZE);
         }
 
@@ -157,11 +232,9 @@ impl <T: ShaCommon<u32>> Hash for T {
 
     fn digest(&mut self, data: &[u8]) -> Vec<u8> {
         self.update(data);
-        let pending = self.get_pending();
-        let total = self.get_total();
-        let padded = pad_last_block(&self.data()[..pending], total, Self::BLOCK_SIZE);
+        let padded = self.pad_last_block();
         for block in padded.chunks_exact(Self::BLOCK_SIZE) {
-            process_block(&mut self.hash(), block, &Self::K_CONST, Self::W_LENGTH);
+            self.process_block(block);
         }
         let mut digest: Vec<u8> = Vec::with_capacity(Self::DIGEST_SIZE);
         for i in 0..Self::DIGEST_SIZE/4 {
@@ -244,69 +317,5 @@ impl ShaUnsg for u64 {
 
     fn from_be_bytes(bytes: &[u8]) -> Self {
         u64::from_be_bytes(bytes.try_into().unwrap())
-    }
-}
-
-fn pad_last_block(block: &[u8], total_data: usize,
-                  block_size: usize) -> Vec<u8> {
-    assert!(block.len() <= block_size);
-    let mut padded = Vec::with_capacity(block_size);
-    padded.extend_from_slice(block);
-    padded.push(0x80);
-    let k: usize;
-    if block.len() < 56 {
-        k = block_size - block.len() - 1 - block_size/8;
-    } else {
-        k = block_size*2 - block.len() - 1 - block_size/8;
-    }
-    for _ in 0..k {
-        padded.push(0)
-    }
-    let length = (((total_data+block.len())*8) as u64).to_be_bytes();
-    padded.extend_from_slice(&length);
-    padded
-}
-
-fn process_block<T: ShaUnsg>(hash: &mut [T; 8], block: &[u8],
-                             k_const: &[T], w_length: usize) {
-    // Message schedule (W)
-    let mut w: Vec<T> = Vec::with_capacity(w_length);
-    
-    // Always 16 rounds
-    for int_bytes in block.chunks(std::mem::size_of::<T>()) {
-        w.push(T::from_be_bytes(int_bytes));
-    }
-    for i in 16..w_length {
-        w.push(T::v1(w[i-2])
-            .wrapping_add(w[i-7])
-            .wrapping_add(T::v0(w[i-15]))
-            .wrapping_add(w[i-16]));
-    }
-
-    // Working variables: a(0), b(1), c(2), d(3), e(4), f(5), g(6), h(7)
-    let mut v = hash.clone();
-
-    for i in 0..w_length {
-        // t1 = h + s1(e) + ch(e, f, g) + K[t] +  w[t]
-        let t1: T = v[7]
-            .wrapping_add(T::s1(v[4]))
-            .wrapping_add(T::ch(v[4], v[5], v[6]))
-            .wrapping_add(k_const[i])
-            .wrapping_add(w[i]);
-        // t2 = s0(a) + maj(a, b, c);
-        let t2: T = T::s0(v[0]).wrapping_add(T::maj(v[0], v[1], v[2]));
-
-        v[7] = v[6];                  // h = g;
-        v[6] = v[5];                  // g = f;
-        v[5] = v[4];                  // f = e;
-        v[4] = v[3].wrapping_add(t1); // e = d + t1;
-        v[3] = v[2];                  // d = c;
-        v[2] = v[1];                  // c = b;
-        v[1] = v[0];                  // b = a;
-        v[0] = t1.wrapping_add(t2);   // a = t1 + t2;
-    }
-
-    for i in 0..v.len() {
-        hash[i] = hash[i].wrapping_add(v[i]);
     }
 }
