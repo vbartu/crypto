@@ -221,10 +221,11 @@ impl <T: ShaCommon> Hash for T {
         for block in padded.chunks_exact(Self::BLOCK_SIZE) {
             self.process_block(block);
         }
-        let mut digest: Vec<u8> = Vec::with_capacity(Self::DIGEST_SIZE);
-        for i in 0..Self::DIGEST_SIZE*16/Self::BLOCK_SIZE {
-            digest.extend_from_slice(self.hash()[i].to_be_bytes().as_slice());
+        let mut digest: Vec<u8> = Vec::new();
+        for word in self.hash() {
+            digest.extend_from_slice(word.to_be_bytes().as_slice());
         }
+        digest.truncate(Self::DIGEST_SIZE);
         self.reset();
         digest
     }
