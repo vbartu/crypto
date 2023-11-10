@@ -84,8 +84,10 @@ fn main() {
     let d2 = hash.digest("c".as_bytes());
     utils::print_hex(d2.as_slice());
 
-    let mut hash = hash::Sha256::new();
-    test_hash(&mut hash, "sha256");
     let mut hash = hash::Sha224::new();
     test_hash(&mut hash, "sha224");
+    let mut hash = hash::Sha256::new();
+    test_hash(&mut hash, "sha256");
+    let mut hash = hash::Sha512::new();
+    test_hash(&mut hash, "sha512");
 }

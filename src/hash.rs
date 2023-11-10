@@ -2,7 +2,7 @@ mod sha2;
 mod sha2_common;
 mod sha2_constants;
 
-pub use sha2::{Sha224,Sha256};
+pub use sha2::{Sha224,Sha256,Sha512};
 
 
 pub trait Hash {
