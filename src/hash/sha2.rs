@@ -11,7 +11,8 @@ pub struct Sha224 {
     total_data: usize,
 }
 
-impl ShaCommon<u32> for Sha224 {
+impl ShaCommon for Sha224 {
+    type T = u32;
     const DIGEST_SIZE: usize = constants::SHA224_DIGEST_SIZE;
     const BLOCK_SIZE: usize = constants::SHA256_BLOCK_SIZE;
     const W_LENGTH: usize = constants::SHA256_W_LENGTH;
@@ -63,7 +64,8 @@ pub struct Sha256 {
     total_data: usize,
 }
 
-impl ShaCommon<u32> for Sha256 {
+impl ShaCommon for Sha256 {
+    type T = u32;
     const DIGEST_SIZE: usize = constants::SHA256_DIGEST_SIZE;
     const BLOCK_SIZE: usize = constants::SHA256_BLOCK_SIZE;
     const W_LENGTH: usize = constants::SHA256_W_LENGTH;
@@ -108,13 +110,14 @@ impl ShaCommon<u32> for Sha256 {
     }
 }
 
-trait ShaCommon<T: 'static + ShaUnsg> {
+trait ShaCommon {
+    type T: ShaUnsg + 'static;
     const BLOCK_SIZE: usize;
     const DIGEST_SIZE: usize;
     const W_LENGTH: usize;
-    const K_CONST: &'static[T];
+    const K_CONST: &'static[Self::T];
     fn new() -> Self;
-    fn hash(&mut self) -> &mut [T; 8];
+    fn hash(&mut self) -> &mut [Self::T; 8];
     fn data(&mut self) -> &mut [u8]; // Size MUST BE BLOCK_SIZE
     fn get_pending(&mut self) -> usize;
     fn set_pending(&mut self, value: usize);
@@ -124,16 +127,16 @@ trait ShaCommon<T: 'static + ShaUnsg> {
 
     fn process_block(&mut self, block: &[u8]) {
         // Message schedule (W)
-        let mut w: Vec<T> = Vec::with_capacity(Self::W_LENGTH);
+        let mut w: Vec<Self::T> = Vec::with_capacity(Self::W_LENGTH);
 
         // Always 16 rounds
-        for int_bytes in block.chunks(std::mem::size_of::<T>()) {
-            w.push(T::from_be_bytes(int_bytes));
+        for int_bytes in block.chunks(std::mem::size_of::<Self::T>()) {
+            w.push(Self::T::from_be_bytes(int_bytes));
         }
         for i in 16..Self::W_LENGTH {
-            w.push(T::v1(w[i-2])
+            w.push(Self::T::v1(w[i-2])
                 .wrapping_add(w[i-7])
-                .wrapping_add(T::v0(w[i-15]))
+                .wrapping_add(Self::T::v0(w[i-15]))
                 .wrapping_add(w[i-16]));
         }
 
@@ -142,13 +145,14 @@ trait ShaCommon<T: 'static + ShaUnsg> {
 
         for i in 0..Self::W_LENGTH {
             // t1 = h + s1(e) + ch(e, f, g) + K[t] +  w[t]
-            let t1: T = v[7]
-                .wrapping_add(T::s1(v[4]))
-                .wrapping_add(T::ch(v[4], v[5], v[6]))
+            let t1: Self::T = v[7]
+                .wrapping_add(Self::T::s1(v[4]))
+                .wrapping_add(Self::T::ch(v[4], v[5], v[6]))
                 .wrapping_add(Self::K_CONST[i])
                 .wrapping_add(w[i]);
             // t2 = s0(a) + maj(a, b, c);
-            let t2: T = T::s0(v[0]).wrapping_add(T::maj(v[0], v[1], v[2]));
+            let t2: Self::T = Self::T::s0(v[0])
+                .wrapping_add(Self::T::maj(v[0], v[1], v[2]));
 
             v[7] = v[6];                  // h = g;
             v[6] = v[5];                  // g = f;
@@ -197,11 +201,11 @@ trait ShaCommon<T: 'static + ShaUnsg> {
     }
 }
 
-impl <T: ShaCommon<u32>> Hash for T {
-    const DIGEST_SIZE: usize = <T as ShaCommon<u32>>::DIGEST_SIZE;
+impl <T: ShaCommon> Hash for T {
+    const DIGEST_SIZE: usize = <T as ShaCommon>::DIGEST_SIZE;
 
     fn new() -> Self {
-        <T as ShaCommon<u32>>::new()
+        <T as ShaCommon>::new()
     }
 
     fn update(&mut self, data: &[u8]) {
@@ -255,6 +259,7 @@ trait ShaUnsg: Copy
     fn v0(self) -> Self;
     fn v1(self) -> Self;
     fn wrapping_add(self, lhs: Self) -> Self;
+    fn to_be_bytes(self) -> Vec<u8>;
     fn from_be_bytes(bytes: &[u8]) -> Self;
 
     fn ch(x: Self, y: Self, z: Self) -> Self
@@ -292,6 +297,10 @@ impl ShaUnsg for u32 {
     fn from_be_bytes(bytes: &[u8]) -> Self {
         u32::from_be_bytes(bytes.try_into().unwrap())
     }
+
+    fn to_be_bytes(self) -> Vec<u8> {
+        u32::to_be_bytes(self).to_vec()
+    }
 }
 
 impl ShaUnsg for u64 {
@@ -317,5 +326,9 @@ impl ShaUnsg for u64 {
 
     fn from_be_bytes(bytes: &[u8]) -> Self {
         u64::from_be_bytes(bytes.try_into().unwrap())
+    }
+
+    fn to_be_bytes(self) -> Vec<u8> {
+        u64::to_be_bytes(self).to_vec()
     }
 }
