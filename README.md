@@ -12,4 +12,7 @@ Implementation of some common cryptographic primitives.
 * Hash functions
     * SHA224
     * SHA256
+    * SHA384
     * SHA512
+    * SHA512/224
+    * SHA512/256

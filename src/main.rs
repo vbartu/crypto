@@ -88,6 +88,12 @@ fn main() {
     test_hash(&mut hash, "sha224");
     let mut hash = hash::Sha256::new();
     test_hash(&mut hash, "sha256");
+    let mut hash = hash::Sha384::new();
+    test_hash(&mut hash, "sha384");
     let mut hash = hash::Sha512::new();
     test_hash(&mut hash, "sha512");
+    let mut hash = hash::Sha512_224::new();
+    test_hash(&mut hash, "sha512_224");
+    let mut hash = hash::Sha512_256::new();
+    test_hash(&mut hash, "sha512_256");
 }
