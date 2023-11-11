@@ -1,5 +1,6 @@
 use std::num::ParseIntError;
 
+#[allow(dead_code)] // Use for debug
 pub fn print_hex(data: &[u8]) {
     for i in 0..data.len() {
         print!("{:02x}", data[i]);

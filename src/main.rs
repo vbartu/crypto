@@ -4,7 +4,6 @@ mod modes;
 mod utils;
 
 use cipher::Cipher;
-use modes::{ecb,cbc,ctr};
 
 
 fn main() {
@@ -35,27 +34,4 @@ fn main() {
     assert_eq!(ciphertext, 0x85e813540f0ab405u64.to_be_bytes());
     assert_eq!(plaintext, des_data);
     println!("DES cipher");
-
-    // ECB/CBC + AES cipher
-    let msg = String::from("Hey friends, this is a longer message!!!");
-
-    let ecb_encrypted = ecb::encrypt(msg.as_bytes(), &aes_cipher).unwrap();
-    let ecb_decrypted = ecb::decrypt(&ecb_encrypted, &aes_cipher).unwrap();
-    assert_eq!(msg, String::from_utf8(ecb_decrypted).unwrap());
-    utils::print_hex(ecb_encrypted.as_slice());
-    println!("AES-ECB");
-
-    let iv: &[u8] = [0; 16].as_slice();
-    let cbc_encrypted = cbc::encrypt(msg.as_bytes(), &aes_cipher, &iv).unwrap();
-    let cbc_decrypted = cbc::decrypt(&cbc_encrypted, &aes_cipher, &iv).unwrap();
-    assert_eq!(msg, String::from_utf8(cbc_decrypted).unwrap());
-    utils::print_hex(cbc_encrypted.as_slice());
-    println!("AES-CBC");
-
-    let nonce: &[u8] = [0; 8].as_slice();
-    let ctr_encrypted = ctr::encrypt(msg.as_bytes(), &aes_cipher, &nonce).unwrap();
-    let ctr_decrypted = ctr::decrypt(&ctr_encrypted, &aes_cipher, &nonce).unwrap();
-    assert_eq!(msg, String::from_utf8(ctr_decrypted).unwrap());
-    utils::print_hex(ctr_encrypted.as_slice());
-    println!("AES-CTR");
 }
