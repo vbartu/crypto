@@ -4,27 +4,7 @@ mod modes;
 mod utils;
 
 use cipher::Cipher;
-use hash::Hash;
 use modes::{ecb,cbc,ctr};
-
-
-fn test_hash(hash: &mut impl Hash, name: &str) {
-    println!("Testing {}", name);
-
-    // Short test
-    hash.update("ab".as_bytes());
-    let digest = hash.digest("c".as_bytes());
-    utils::print_hex(digest.as_slice());
-
-    // Long test
-    let msg: &mut [u8] = &mut [0; 1029];
-    for i in 0..msg.len() {
-        msg[i] = i as u8;
-    }
-    hash.update(msg);
-    let digest = hash.digest(&[]);
-    utils::print_hex(digest.as_slice());
-}
 
 
 fn main() {
@@ -78,22 +58,4 @@ fn main() {
     assert_eq!(msg, String::from_utf8(ctr_decrypted).unwrap());
     utils::print_hex(ctr_encrypted.as_slice());
     println!("AES-CTR");
-
-    let mut hash = hash::Sha256::new();
-    hash.update("ab".as_bytes());
-    let d2 = hash.digest("c".as_bytes());
-    utils::print_hex(d2.as_slice());
-
-    let mut hash = hash::Sha224::new();
-    test_hash(&mut hash, "sha224");
-    let mut hash = hash::Sha256::new();
-    test_hash(&mut hash, "sha256");
-    let mut hash = hash::Sha384::new();
-    test_hash(&mut hash, "sha384");
-    let mut hash = hash::Sha512::new();
-    test_hash(&mut hash, "sha512");
-    let mut hash = hash::Sha512_224::new();
-    test_hash(&mut hash, "sha512_224");
-    let mut hash = hash::Sha512_256::new();
-    test_hash(&mut hash, "sha512_256");
 }

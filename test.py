@@ -1,6 +1,6 @@
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-from Crypto.Hash import SHA224, SHA256, SHA512, SHA384
+from Crypto.Hash import SHA256
 
 
 DATA = b"Hey friends, this is a longer message!!!"
@@ -11,7 +11,7 @@ def print_bytes(data: bytes):
     for i, b in enumerate(data):
         print(f"{b:02x}", end="")
         if (i+1) % 4 == 0:
-            print(" ", end="")
+            print("", end="")
     print()
 
 
@@ -36,13 +36,6 @@ def aes_ctr(data, key: bytes, nonce):
     print("AES-CTR")
 
 
-def sha_224(data):
-    h = SHA224.new()
-    h.update(data)
-    digest = h.digest()
-    print_bytes(digest)
-
-
 def sha_256(data):
     h = SHA256.new()
     h.update(data)
@@ -50,57 +43,10 @@ def sha_256(data):
     print_bytes(digest)
 
 
-def sha_384(data):
-    h = SHA384.new()
-    h.update(data)
-    digest = h.digest()
-    print_bytes(digest)
-
-
-def sha_512(data):
-    h = SHA512.new()
-    h.update(data)
-    digest = h.digest()
-    print_bytes(digest)
-
-
-def sha_512_224(data):
-    h = SHA512.new(truncate="224")
-    h.update(data)
-    digest = h.digest()
-    print_bytes(digest)
-
-
-def sha_512_256(data):
-    h = SHA512.new(truncate="256")
-    h.update(data)
-    digest = h.digest()
-    print_bytes(digest)
-
-
 def main():
-    # aes_ecb(DATA, KEY)
-    # aes_cbc(DATA, KEY, bytes(16))
-    # aes_ctr(DATA, KEY, bytes(8))
-    print("SHA224")
-    sha_224(b"abc")
-    sha_224(bytes([x & 0xFF for x in (range(1029))]))
-    print("SHA256")
-    sha_256(b"abc")
-    sha_256(bytes([x & 0xFF for x in (range(1029))]))
-    print("SHA384")
-    sha_384(b"abc")
-    sha_384(bytes([x & 0xFF for x in (range(1029))]))
-    print("SHA512")
-    sha_512(b"abc")
-    sha_512(bytes([x & 0xFF for x in (range(1029))]))
-    print("SHA512_224")
-    sha_512_224(b"abc")
-    sha_512_224(bytes([x & 0xFF for x in (range(1029))]))
-    print("SHA512_256")
-    sha_512_256(b"abc")
-    sha_512_256(bytes([x & 0xFF for x in (range(1029))]))
-
+    aes_ecb(DATA, KEY)
+    aes_cbc(DATA, KEY, bytes(16))
+    aes_ctr(DATA, KEY, bytes(8))
 
 
 if __name__ == "__main__":
