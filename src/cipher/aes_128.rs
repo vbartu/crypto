@@ -164,3 +164,23 @@ fn key_expansion(prev_key: &[u8; 16], round: usize) -> [u8; 16] {
     }
     next_key
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{Aes128Cipher,Cipher};
+    use crate::utils::decode_hex;
+
+    const KEY: &[u8] = "yellow submarine".as_bytes();
+    const MSG: &[u8] = "Attack at dawn!!".as_bytes();
+
+    #[test]
+    fn aes() {
+        let expected = decode_hex("9012932cf5a953b0e97ff4e21a8ea9df").unwrap();
+        let aes = Aes128Cipher::new(KEY).expect("Key size error");
+        let encrypted = aes.encrypt(MSG).unwrap();
+        assert_eq!(encrypted, expected);
+        let decrypted = aes.decrypt(&encrypted).unwrap();
+        assert_eq!(decrypted, MSG);
+    }
+}

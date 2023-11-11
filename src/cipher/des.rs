@@ -125,3 +125,23 @@ pub fn des_algorithm(plaintext: &[u8; 8], keys: &[[u8; 6]; 16]) -> [u8; 8] {
 
     chunk.to_be_bytes()
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{DesCipher,Cipher};
+    use crate::utils::decode_hex;
+
+    const KEY: &[u8] = "computer".as_bytes();
+    const MSG: &[u8] = "delivery".as_bytes();
+
+    #[test]
+    fn des() {
+        let expected = decode_hex("0b006d5e6b241848").unwrap();
+        let des = DesCipher::new(KEY).expect("Key size error");
+        let encrypted = des.encrypt(MSG).unwrap();
+        assert_eq!(encrypted, expected);
+        let decrypted = des.decrypt(&encrypted).unwrap();
+        assert_eq!(decrypted, MSG);
+    }
+}
