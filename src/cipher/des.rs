@@ -1,6 +1,6 @@
+use crate::error::CryptoErr;
 use super::des_constants as constants;
-
-use super::{Cipher,CipherErr};
+use super::Cipher;
 
 
 pub struct DesCipher {
@@ -10,27 +10,27 @@ pub struct DesCipher {
 impl Cipher for DesCipher {
     const BLOCK_SIZE: usize = constants::BLOCK_SIZE;
 
-    fn new(key: &[u8]) -> Result<Self, CipherErr> {
+    fn new(key: &[u8]) -> Result<Self, CryptoErr> {
         let key: [u8; Self::BLOCK_SIZE] = match key.try_into() {
             Ok(key) => key,
-            Err(_) => return Err(CipherErr::KeySize),
+            Err(_) => return Err(CryptoErr::KeySize),
         };
 
         let keys = key_expansion(&key);
         Ok(Self { keys })
     }
 
-    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CipherErr> {
+    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CryptoErr> {
         match data.try_into() {
             Ok(data) => {
                 let ciphertext = des_algorithm(&data, &self.keys);
                 Ok(Vec::from(ciphertext))
             },
-            Err(_) => Err(CipherErr::BlockSize)
+            Err(_) => Err(CryptoErr::BlockSize)
         }
     }
 
-    fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, CipherErr> {
+    fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, CryptoErr> {
         match data.try_into() {
             Ok(data) => {
                 let mut keys = self.keys.clone();
@@ -38,7 +38,7 @@ impl Cipher for DesCipher {
                 let plaintext = des_algorithm(&data, &keys);
                 Ok(Vec::from(plaintext))
             },
-            Err(_) => Err(CipherErr::BlockSize)
+            Err(_) => Err(CryptoErr::BlockSize)
         }
     }
 }

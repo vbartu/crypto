@@ -1,9 +1,10 @@
+use crate::cipher::Cipher;
+use crate::error::CryptoErr;
 use super::pkcs7_padding;
-use crate::cipher::{Cipher,CipherErr};
 
 
 pub fn encrypt(data: &[u8], cipher: &impl Cipher)
-        -> Result<Vec<u8>, CipherErr> {
+        -> Result<Vec<u8>, CryptoErr> {
     let padded = pkcs7_padding::pad(data, cipher.block_size());
     let mut encrypted = Vec::<u8>::with_capacity(padded.len());
 
@@ -17,7 +18,7 @@ pub fn encrypt(data: &[u8], cipher: &impl Cipher)
 }
 
 pub fn decrypt(data: &[u8], cipher: &impl Cipher)
-        -> Result<Vec<u8>, CipherErr> {
+        -> Result<Vec<u8>, CryptoErr> {
     let mut decrypted = Vec::<u8>::with_capacity(data.len());
 
     for block in data.chunks_exact(cipher.block_size()) {

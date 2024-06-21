@@ -1,6 +1,3 @@
-use std::vec::Vec;
-
-
 pub fn pad(data: &[u8], block_size: usize) -> Vec<u8> {
     let mut padded: Vec<u8> = data.to_vec();
     let total_size: usize = (data.len()/block_size + 1) * block_size;

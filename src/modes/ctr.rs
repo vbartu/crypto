@@ -1,12 +1,13 @@
-use crate::cipher::{Cipher,CipherErr};
+use crate::cipher::Cipher;
+use crate::error::CryptoErr;
 use crate::utils;
 
 
 pub fn encrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
-        -> Result<Vec<u8>,CipherErr> {
+        -> Result<Vec<u8>,CryptoErr> {
     let nonce_size: usize = cipher.block_size() / 2;
     if nonce.len() != nonce_size {
-        return Err(CipherErr::BlockSize);
+        return Err(CryptoErr::BlockSize);
     }
     let mut counter: u64 = 0;
     let mut encrypted: Vec<u8> = Vec::with_capacity(data.len());
@@ -27,6 +28,6 @@ pub fn encrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
 }
 
 pub fn decrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
-        -> Result<Vec<u8>,CipherErr> {
+        -> Result<Vec<u8>,CryptoErr> {
     encrypt(data, cipher, nonce)
 }

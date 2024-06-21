@@ -1,5 +1,6 @@
 use std::num::ParseIntError;
 
+
 #[allow(dead_code)] // Use for debug
 pub fn print_hex(data: &[u8]) {
     for i in 0..data.len() {
@@ -16,6 +17,7 @@ pub fn xor_slice(a: &mut [u8], b: &[u8]) {
         a[i] ^= b[i];
     }
 }
+
 
 #[allow(dead_code)] // Use for tests
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
