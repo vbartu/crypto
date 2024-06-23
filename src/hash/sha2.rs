@@ -104,7 +104,8 @@ mod tests {
         msg
     }
     fn test_sha(h: &mut impl Hash, expected_s: &[u8], expected_l: &[u8]) {
-        let digest = h.digest(SHORT_MSG);
+        h.update(SHORT_MSG);
+        let digest = h.digest();
         assert_eq!(digest, expected_s);
         let long_msg = long_msg();
         let iter = long_msg.chunks_exact(700);
@@ -112,7 +113,8 @@ mod tests {
         for chunk in iter {
             h.update(chunk);
         }
-        let digest = h.digest(rem);
+        h.update(rem);
+        let digest = h.digest();
         assert_eq!(digest, expected_l);
     }
 
