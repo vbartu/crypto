@@ -18,3 +18,4 @@ macro_rules! error_decl {
 error_decl!(InvalidKeyLen, "Invalid key length");
 error_decl!(InvalidDataLen, "Invalid data length");
 error_decl!(InvalidIvLen, "Invalid iv/nonce length");
+error_decl!(IncorrectMac, "MAC signature was incorrect");
