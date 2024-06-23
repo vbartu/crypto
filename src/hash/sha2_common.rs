@@ -215,8 +215,7 @@ impl <T: ShaCommon> Hash for T {
         self.data()[..rem.len()].copy_from_slice(rem);
     }
 
-    fn digest(&mut self, data: &[u8]) -> Vec<u8> {
-        self.update(data);
+    fn digest(&mut self) -> Vec<u8> {
         let padded = self.pad_last_block();
         for block in padded.chunks_exact(Self::BLOCK_SIZE) {
             self.process_block(block);
@@ -228,5 +227,9 @@ impl <T: ShaCommon> Hash for T {
         digest.truncate(Self::DIGEST_SIZE);
         self.reset();
         digest
+    }
+
+    fn reset(&mut self) {
+        self.reset();
     }
 }

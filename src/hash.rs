@@ -10,10 +10,11 @@ pub trait Hash {
 
     fn new() -> Self;
 
-    // Digest MUST reset the hash
-    fn digest(&mut self, data: &[u8]) -> Vec<u8>;
-
     fn update(&mut self, data: &[u8]);
+
+    fn digest(&mut self) -> Vec<u8>;
+
+    fn reset(&mut self);
 
     fn digest_size(&self) -> usize {
         Self::DIGEST_SIZE
