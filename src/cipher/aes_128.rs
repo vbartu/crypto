@@ -1,4 +1,4 @@
-use crate::error::CryptoErr;
+use crate::error::{InvalidKeyLen,InvalidDataLen};
 use crate::utils;
 use super::aes_128_constants as constants;
 use super::Cipher;
@@ -11,10 +11,10 @@ pub struct Aes128Cipher {
 impl Cipher for Aes128Cipher {
     const BLOCK_SIZE: usize = constants::BLOCK_SIZE;
 
-    fn new(key: &[u8]) -> Result<Self, CryptoErr> {
+    fn new(key: &[u8]) -> Result<Self, InvalidKeyLen> {
         let key: [u8; Self::BLOCK_SIZE] = match key.try_into() {
             Ok(key) => key,
-            Err(_) => return Err(CryptoErr::KeySize),
+            Err(_) => return Err(InvalidKeyLen),
         };
 
         let mut keys: Vec<[u8; Self::BLOCK_SIZE]> = Vec::new();
@@ -26,23 +26,23 @@ impl Cipher for Aes128Cipher {
         Ok(Self { keys })
     }
 
-    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CryptoErr> {
+    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, InvalidDataLen> {
         match data.try_into() {
             Ok(data) => {
                 let ciphertext = self.do_encrypt(&data);
                 Ok(Vec::from(ciphertext))
             },
-            Err(_) => Err(CryptoErr::BlockSize)
+            Err(_) => Err(InvalidDataLen)
         }
     }
 
-    fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, CryptoErr> {
+    fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, InvalidDataLen> {
         match data.try_into() {
             Ok(data) => {
                 let plaintext = self.do_decrypt(&data);
                 Ok(Vec::from(plaintext))
             },
-            Err(_) => Err(CryptoErr::BlockSize)
+            Err(_) => Err(InvalidDataLen)
         }
     }
 }

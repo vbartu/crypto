@@ -1,16 +1,16 @@
 use crate::cipher::Cipher;
-use crate::error::CryptoErr;
+use crate::error::InvalidIvLen;
 use crate::utils;
 use super::pkcs7_padding;
 
 
 pub fn encrypt(data: &[u8], cipher: &impl Cipher, iv: &[u8])
-        -> Result<Vec<u8>,CryptoErr> {
+        -> Result<Vec<u8>,InvalidIvLen> {
     let padded = pkcs7_padding::pad(data, cipher.block_size());
     let mut encrypted = Vec::<u8>::with_capacity(padded.len());
 
     if iv.len() != cipher.block_size() {
-        return Err(CryptoErr::BlockSize);
+        return Err(InvalidIvLen);
     }
     let mut prev_ciphertext: Vec<u8> = iv.to_owned();
     for block in padded.chunks_exact(cipher.block_size()) {
@@ -25,11 +25,11 @@ pub fn encrypt(data: &[u8], cipher: &impl Cipher, iv: &[u8])
 }
 
 pub fn decrypt(data: &[u8], cipher: &impl Cipher, iv: &[u8])
-        -> Result<Vec<u8>,CryptoErr> {
+        -> Result<Vec<u8>,InvalidIvLen> {
     let mut decrypted = Vec::<u8>::with_capacity(data.len());
 
     if iv.len() != cipher.block_size() {
-        return Err(CryptoErr::BlockSize);
+        return Err(InvalidIvLen);
     }
     let mut prev_ciphertext: Vec<u8> = iv.to_owned();
     for block in data.chunks_exact(cipher.block_size()) {

@@ -1,16 +1,20 @@
-#[derive(Debug)]
-pub enum CryptoErr {
-    KeySize,
-    BlockSize,
-}
+macro_rules! error_decl {
+    ( $name:ident, $err_msg:expr ) =>
+    {
+        #[derive(Debug)]
+        pub struct $name;
 
-impl std::fmt::Display for CryptoErr {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            CryptoErr::KeySize => write!(f, "{}", "Invalid key size"),
-            CryptoErr::BlockSize => write!(f, "{}", "Invalid block size"),
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "Error: {}", $err_msg)
+            }
         }
+
+        impl std::error::Error for $name {}
     }
 }
 
-impl std::error::Error for CryptoErr {}
+
+error_decl!(InvalidKeyLen, "Invalid key length");
+error_decl!(InvalidDataLen, "Invalid data length");
+error_decl!(InvalidIvLen, "Invalid iv/nonce length");

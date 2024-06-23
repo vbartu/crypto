@@ -1,13 +1,13 @@
 use crate::cipher::Cipher;
-use crate::error::CryptoErr;
+use crate::error::InvalidIvLen;
 use crate::utils;
 
 
 pub fn encrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
-        -> Result<Vec<u8>,CryptoErr> {
+        -> Result<Vec<u8>,InvalidIvLen> {
     let nonce_size: usize = cipher.block_size() / 2;
     if nonce.len() != nonce_size {
-        return Err(CryptoErr::BlockSize);
+        return Err(InvalidIvLen);
     }
     let mut counter: u64 = 0;
     let mut encrypted: Vec<u8> = Vec::with_capacity(data.len());
@@ -28,6 +28,6 @@ pub fn encrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
 }
 
 pub fn decrypt(data: &[u8], cipher: &impl Cipher, nonce: &[u8])
-        -> Result<Vec<u8>,CryptoErr> {
+        -> Result<Vec<u8>,InvalidIvLen> {
     encrypt(data, cipher, nonce)
 }
