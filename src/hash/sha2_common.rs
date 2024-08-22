@@ -184,6 +184,7 @@ pub trait ShaCommon {
 
 impl <T: ShaCommon> Hash for T {
     const DIGEST_SIZE: usize = <T as ShaCommon>::DIGEST_SIZE;
+    const BLOCK_SIZE: usize = <T as ShaCommon>::BLOCK_SIZE;
 
     fn new() -> Self {
         <T as ShaCommon>::new()

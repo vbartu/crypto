@@ -7,6 +7,7 @@ pub use sha2::{Sha224,Sha256,Sha384,Sha512,Sha512_224,Sha512_256};
 
 pub trait Hash {
     const DIGEST_SIZE: usize;
+    const BLOCK_SIZE: usize;
 
     fn new() -> Self;
 

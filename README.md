@@ -16,3 +16,5 @@ Implementation of some common cryptographic primitives.
     * SHA512
     * SHA512/224
     * SHA512/256
+* Message authentication codes (MACs)
+    * HMAC

@@ -1,6 +1,7 @@
 mod cipher;
 mod error;
 mod hash;
+mod mac;
 mod modes;
 mod utils;
 
