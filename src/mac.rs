@@ -9,7 +9,7 @@ pub trait Mac {
 
     fn update(&mut self, data: &[u8]);
 
-    fn finalize(&mut self) -> Vec<u8>;
+    fn generate(&mut self) -> Vec<u8>;
 
     fn reset(&mut self);
 
@@ -17,7 +17,7 @@ pub trait Mac {
             -> Result<(), IncorrectMac> {
         self.reset();
         self.update(data);
-        let expected_signature = self.finalize();
+        let expected_signature = self.generate();
         if expected_signature != signature {
             return Err(IncorrectMac);
         }

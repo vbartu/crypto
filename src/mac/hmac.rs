@@ -40,7 +40,7 @@ impl<H> Mac for Hmac<H> where H: Hash {
     }
 
 
-    fn finalize(&mut self) -> Vec<u8> {
+    fn generate(&mut self) -> Vec<u8> {
         let mut ipad_key = self.key.clone();
         let mut opad_key = self.key.clone();
         for i in 0..ipad_key.len() {
@@ -48,6 +48,7 @@ impl<H> Mac for Hmac<H> where H: Hash {
             opad_key[i] ^= OUTER_PAD_VAL;
         }
 
+        self.hash.reset();
         self.hash.update(ipad_key.as_slice());
         self.hash.update(self.msg.as_slice());
         let inner_hash = self.hash.digest();
@@ -60,7 +61,6 @@ impl<H> Mac for Hmac<H> where H: Hash {
 
     fn reset(&mut self) {
         self.msg.clear();
-        self.hash.reset();
     }
 
     fn size(&self) -> usize {
@@ -85,8 +85,7 @@ mod tests {
                                    6175997479dbc2d1a3cd8").unwrap();
         let mut hmac_sha256 = Hmac::<Sha256>::new(KEY).expect("Invalid key");
         hmac_sha256.update(MSG);
-        let signature = hmac_sha256.finalize();
-        crate::utils::print_hex(&signature);
+        let signature = hmac_sha256.generate();
         assert_eq!(signature, expected);
         let result = hmac_sha256.verify(MSG, signature.as_slice());
         assert!(result.is_ok());
