@@ -26,13 +26,13 @@ fn sanitize_key<H: Hash>(key: &[u8]) -> Vec<u8> {
     sanitized_key
 }
 
-impl<H> Mac<H> for Hmac<H> where H: Hash {
-    fn new(key: &[u8]) -> Self {
+impl<H> Mac for Hmac<H> where H: Hash {
+    fn new(key: &[u8]) -> Result<Self, crate::error::InvalidKeyLen> {
         let hash = H::new();
         let key = sanitize_key::<H>(key);
         let msg = Vec::new();
 
-        Self {hash, key, msg}
+        Ok(Self {hash, key, msg})
     }
 
     fn update(&mut self, data: &[u8]) {
@@ -62,6 +62,10 @@ impl<H> Mac<H> for Hmac<H> where H: Hash {
         self.msg.clear();
         self.hash.reset();
     }
+
+    fn size(&self) -> usize {
+        H::DIGEST_SIZE
+    }
 }
 
 
@@ -79,7 +83,7 @@ mod tests {
     fn hmac() {
         let expected = decode_hex("f7bc83f430538424b13298e6aa6fb143ef4d59a1494\
                                    6175997479dbc2d1a3cd8").unwrap();
-        let mut hmac_sha256 = Hmac::<Sha256>::new(KEY);
+        let mut hmac_sha256 = Hmac::<Sha256>::new(KEY).expect("Invalid key");
         hmac_sha256.update(MSG);
         let signature = hmac_sha256.finalize();
         crate::utils::print_hex(&signature);

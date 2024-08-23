@@ -1,12 +1,11 @@
 mod hmac;
 pub use hmac::Hmac;
 
-use crate::error::IncorrectMac;
-use crate::hash::Hash;
+use crate::error::{IncorrectMac, InvalidKeyLen};
 
 
-pub trait Mac<H> where H: Hash {
-    fn new(key: &[u8]) -> Self where Self: Sized;
+pub trait Mac {
+    fn new(key: &[u8]) -> Result<Self, InvalidKeyLen> where Self: Sized;
 
     fn update(&mut self, data: &[u8]);
 
@@ -25,7 +24,5 @@ pub trait Mac<H> where H: Hash {
         Ok(())
     }
 
-    fn size(&self) -> usize {
-        H::DIGEST_SIZE
-    }
+    fn size(&self) -> usize;
 }
